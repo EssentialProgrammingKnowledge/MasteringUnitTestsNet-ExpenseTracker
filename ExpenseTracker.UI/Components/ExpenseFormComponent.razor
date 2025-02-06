@@ -1,0 +1,65 @@
+﻿@using Blazored.FluentValidation
+@using ExpenseTracker.UI.Models
+@using System.Globalization
+
+<MudDialog>
+    <TitleContent>@Title</TitleContent>
+    <DialogContent>
+        <EditForm Model="newExpense" OnValidSubmit="Submit">
+            <FluentValidationValidator @ref="fluentValidationValidator" />
+            <MudTextField Label="Opis" @bind-Value="newExpense.Description" For="@(() => newExpense.Description)" Immediate="true" Required="true" data-name="expense-form-description" />
+            <MudTextField Label="Kwota [PLN]" @bind-Value="newExpense.Amount" For="@(() => newExpense.Amount)" Immediate="true" Required="true" data-name="expense-form-amount" />
+            <MudSelect Label="Kategoria" @bind-Value="newExpense.CategoryId" For="@(() => newExpense.CategoryId)" Immediate="true" Required="true" data-name="expense-form-category" >
+                <MudSelectItem Value="0" Disabled>-- Wybierz kategorię --</MudSelectItem>
+                @foreach (var category in Categories)
+                {
+                    <MudSelectItem Value="@category.Id">@category.Name @category.Budget.ToString("C", new CultureInfo("pl-PL"))</MudSelectItem>
+                }
+            </MudSelect>
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" @onclick="Submit" data-name="expense-form-submit" >Zapisz</MudButton>
+        <MudButton Color="Color.Default" @onclick="Cancel" data-name="expense-form-cancel" >Anuluj</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string Title { get; set; } = "Dodaj wydatek";
+
+    [Parameter]
+    public IEnumerable<CategoryDTO> Categories { get; set; } = Enumerable.Empty<CategoryDTO>();
+
+    [Parameter]
+    public ExpenseDTO? Expense { get; set; } = null;
+
+    private FluentValidationValidator fluentValidationValidator = null!;
+    private ExpenseDTO newExpense = new ExpenseDTO();
+
+    protected override void OnParametersSet()
+    {
+        if (Expense is not null)
+        {
+            newExpense.Id = Expense.Id;
+            newExpense.Amount = Expense.Amount;
+            newExpense.Description = Expense.Description;
+            newExpense.CategoryId = Expense.CategoryId;
+        }
+    }
+
+    private void Submit()
+    {
+        if(!fluentValidationValidator.Validate())
+        {
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(newExpense));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,80 @@
+@ExpenseTracker.API_HostAddress = http://localhost:5000/api
+@ExpensesAPI = {{ExpenseTracker.API_HostAddress}}/Expenses
+@CategoriesAPI = {{ExpenseTracker.API_HostAddress}}/Categories
+
+#### Categories API
+### Get Categories
+GET {{CategoriesAPI}}
+Accept: application/json
+
+### Add Category
+POST {{CategoriesAPI}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "Bud¿et na drogê",
+  "budget": 1500.50
+}
+
+### Get Category By Id
+GET {{CategoriesAPI}}/1
+Accept: application/json
+
+### Update Category
+PUT {{CategoriesAPI}}/1
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "Bud¿et na drogê",
+  "budget": 1500.50
+}
+
+### Get Category By Id
+GET {{CategoriesAPI}}/1
+Accept: application/json
+
+### Delete Category
+DELETE {{CategoriesAPI}}/3
+Accept: application/json
+
+#### Expenses API
+
+### Get Expenses
+GET {{ExpensesAPI}}
+Accept: application/json
+
+### Add Expense
+POST {{ExpensesAPI}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "amount": 100.50,
+  "categoryId": 1,
+  "description": "Wydatek na paliwo"
+}
+
+### Get Expense By Id
+GET {{ExpensesAPI}}/1
+Accept: application/json
+
+### Update Expense
+PUT {{ExpensesAPI}}/1
+Accept: application/json
+Content-Type: application/json
+
+{
+  "amount": 1000.50,
+  "categoryId": 1,
+  "description": "Wydatek na paliwo"
+}
+
+### Get Expense By Id
+GET {{ExpensesAPI}}/1
+Accept: application/json
+
+### Delete Expense
+DELETE {{ExpensesAPI}}/1
+Accept: application/json

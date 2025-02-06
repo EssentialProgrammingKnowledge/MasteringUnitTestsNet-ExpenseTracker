@@ -1,0 +1,39 @@
+﻿@using Blazored.FluentValidation
+@using ExpenseTracker.UI.Models
+
+<MudDialog>
+    <TitleContent>@(Category is not null && Category.Id > 0 ? "Edytuj kategorię" : "Dodaj kategorię")</TitleContent>
+    <DialogContent>
+        <EditForm Model="newCategory" OnValidSubmit="() => MudDialog.Close(DialogResult.Ok(newCategory))">
+            <FluentValidationValidator @ref="fluentValidationValidator" />
+            <MudTextField Label="Nazwa" @bind-Value="newCategory.Name" For="@(() => newCategory.Name)" Immediate="true" Required="true" data-name="category-form-name" />
+            <MudTextField Label="Budżet [PLN]" @bind-Value="newCategory.Budget" For="@(() => newCategory.Budget)" Immediate="true" Required="true" data-name="category-form-budget" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="() => { if (fluentValidationValidator.Validate()) { MudDialog.Close(DialogResult.Ok(newCategory)); } }" data-name="category-form-submit">Zapisz</MudButton>
+        <MudButton Color="Color.Default" OnClick="() => MudDialog.Cancel()" data-name="category-form-cancel">Anuluj</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public CategoryDTO? Category { get; set; } = null;
+
+    private CategoryDTO newCategory = new();
+    private FluentValidationValidator fluentValidationValidator = null!;
+
+    protected override void OnParametersSet()
+    {
+        if (Category is not null)
+        {
+            newCategory.Id = Category.Id;
+            newCategory.Name = Category.Name;
+            newCategory.Budget = Category.Budget;
+        }
+    }
+}

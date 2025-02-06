@@ -1,0 +1,147 @@
+﻿@using ExpenseTracker.UI.Models
+@using ExpenseTracker.UI.Services
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient Http
+
+<MudContainer>
+    @if (isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" data-name="categories-loading-icon" />
+    }
+    else
+    {
+        <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="async () => { isAdding = true; isEditing = false; category = new CategoryDTO(); await OpenDialog(); }" data-name="categories-add-button">Dodaj kategorię</MudButton>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField @bind-Value="searchQuery" TextChanged="OnSearchCategory" Immediate="true" Label="Szukaj po nazwie" Adornment="Adornment.Start" Icon="@Icons.Material.Filled.Search" data-name="categories-search-input" />
+            </MudItem>
+        </MudGrid>
+
+        <MudTable Items="categoriesToShow" Striped="true" Hover="true" Bordered="true" data-name="categories-table">
+            <HeaderContent>
+                <MudTh>Id</MudTh>
+                <MudTh>Nazwa</MudTh>
+                <MudTh>Budżet</MudTh>
+                <MudTh>Akcje</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd data-name="@($"categories-column-id-{context.Id}")" DataLabel="Id">@context.Id</MudTd>
+                <MudTd data-name="@($"categories-column-with-id-{context.Id}-name")" DataLabel="Name">@context.Name</MudTd>
+                <MudTd data-name="@($"categories-column-with-id-{context.Id}-budget")" DataLabel="Budget">@context.Budget.ToCurrencyString()</MudTd>
+                <MudTd>
+                    <MudTooltip Text="Edytuj kategorię" Placement="Placement.Top" data-name="@($"categories-column-delete-with-id-{context.Id}-tooltip")">
+                        <MudIconButton data-name="@($"categories-column-edit-with-id-{context.Id}")" @onclick="async () => { isAdding = false; isEditing = true; category = new CategoryDTO { Id = context.Id, Name = context.Name, Budget = context.Budget }; await OpenDialog(); }" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
+                    </MudTooltip>
+                    <MudTooltip Text="Usuń kategorię" Placement="Placement.Top" data-name="@($"categories-column-delete-with-id-{context.Id}-tooltip")">
+                        <MudIconButton data-name="@($"categories-column-delete-with-id-{context.Id}")" @onclick="() => DeleteCategory(context.Id)" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private string searchQuery = string.Empty;
+    private List<CategoryDTO> categories = new();
+    private List<CategoryDTO> categoriesToShow = new();
+    private CategoryDTO category = new();
+    private bool isLoading = true;
+    private bool isAdding = false;
+    private bool isEditing = false;
+    private readonly DialogOptions _categoryFormModalOptions = new DialogOptions
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        BackdropClick = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center
+    };
+    private readonly DialogOptions _deleteModalOptions = new DialogOptions
+    {
+        BackdropClick = false,
+        CloseOnEscapeKey = true,
+        Position = DialogPosition.Center
+    };
+    private readonly MessageBoxOptions _deleteModalContent = new MessageBoxOptions
+    {
+        Title = "Usuń kategorię",
+        Message = "Czy chcesz usunąć kategorię?",
+        YesText = "Tak",
+        NoText = "Nie"
+    };
+
+    private void OnSearchCategory(string term)
+    {
+        categoriesToShow = categories
+            .Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        isLoading = true;
+        categories = await Http.GetFromJsonAsync<List<CategoryDTO>>("/api/categories") ?? [];
+        categoriesToShow = categories;
+        isLoading = false;
+    }
+
+    private async Task OpenDialog()
+    {
+        var dialogReference = await DialogService.ShowAsync<CategoryFormComponent>(isAdding ? "Dodaj kategorię" : "Edytuj kategorię", new DialogParameters
+        {
+            { "Category", category }
+        }, _categoryFormModalOptions);
+        var result = await dialogReference.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        category = result.Data as CategoryDTO ?? new CategoryDTO();
+        await SaveCategory();
+    }
+
+    private async Task SaveCategory()
+    {
+        if (string.IsNullOrWhiteSpace(category.Name) || category.Budget <= 0)
+        {
+            Snackbar.Add("Błąd: Nazwa i budżet są wymagane!", Severity.Error);
+            return;
+        }
+
+        if (isAdding)
+        {
+            await Http.PostAsJsonAsync("/api/categories", category);
+            Snackbar.Add("Dodano kategorię!", Severity.Success);
+        }
+        else if (isEditing)
+        {
+            await Http.PutAsJsonAsync($"/api/categories/{category.Id}", category);
+            Snackbar.Add("Zaktualizowano kategorię!", Severity.Success);
+        }
+
+        await LoadCategories();
+        OnSearchCategory(searchQuery);
+    }
+
+    private async Task DeleteCategory(int id)
+    {
+        var confirm = await DialogService.ShowMessageBox(_deleteModalContent, _deleteModalOptions);
+        if (confirm == true)
+        {
+            await Http.DeleteAsync($"/api/categories/{id}");
+            Snackbar.Add("Usunięto kategorię!", Severity.Success);
+            await LoadCategories();
+            OnSearchCategory(searchQuery);
+        }
+    }
+}
