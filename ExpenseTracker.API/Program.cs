@@ -1,6 +1,9 @@
 using ExpenseTracker.API.Database;
 using ExpenseTracker.API.Services;
 using ExpenseTracker.API.Repositories;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ExpenseTracker.UnitTests")]
 
 const string CORS_POLICY = "ExpenseApiPolicy";
 var builder = WebApplication.CreateBuilder(args);
