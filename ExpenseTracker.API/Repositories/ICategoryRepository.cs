@@ -10,5 +10,6 @@ namespace ExpenseTracker.API.Repositories
         Task<bool> Delete(Category category);
         Task<IEnumerable<Category>> GetAll();
         Task<bool> ContainExpenses(int id);
+        Task<decimal> GetCategoriesTotalExpenses(int id);
     }
 }

@@ -39,6 +39,12 @@ namespace ExpenseTracker.API.Repositories
                                 .FirstOrDefaultAsync(c => c.Id == id);
         }
 
+        public async Task<decimal> GetCategoriesTotalExpenses(int id)
+        {
+            return await context.Expenses.Where(e => e.CategoryId == id)
+                                         .SumAsync(e => e.Amount);
+        }
+
         public async Task<Category> Update(Category category)
         {
             context.Categories.Update(category);

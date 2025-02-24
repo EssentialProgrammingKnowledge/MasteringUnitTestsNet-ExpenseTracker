@@ -28,6 +28,16 @@ namespace ExpenseTracker.API.Validations
                 });
         }
 
+        public static ErrorMessage BudgetMustBeGreaterThanZero()
+        {
+            return new ErrorMessage("CATEGORY_BUDGET_GREATER_THAN_ZERO", "Budget must be greater than zero.");
+        }
+
+        public static ErrorMessage NameCannotBeEmpty()
+        {
+            return new ErrorMessage("CATEGORY_NAME_CANNOT_BE_EMPTY", "Name cannot be empty.");
+        }
+
         public static ErrorMessage NameTooLong(int maxCharactersLength, int currentCharactersLength)
         {
             return new ErrorMessage("CATEGORY_NAME_TOO_LONG", $"The category name is too long ({currentCharactersLength} characters). The maximum allowed length is {maxCharactersLength}.",
