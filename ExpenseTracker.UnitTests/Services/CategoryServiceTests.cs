@@ -99,6 +99,7 @@ namespace ExpenseTracker.UnitTests.Services
             result.StatusCode.ShouldBe(StatusCode.Created);
             result.ErrorMessage.ShouldBeNull();
             _categoryRepository.Verify(c => c.Add(It.IsAny<Category>()), Times.Once());
+            _categoryRepository.VerifyNoOtherCalls();
         }
         
         [Theory]
@@ -252,7 +253,10 @@ namespace ExpenseTracker.UnitTests.Services
             result.Data.ShouldNotBeNull();
             result.StatusCode.ShouldBe(StatusCode.Ok);
             result.ErrorMessage.ShouldBeNull();
+            _categoryRepository.Verify(c => c.GetById(dto.Id), Times.Once());
+            _categoryRepository.Verify(c => c.GetCategoriesTotalExpenses(dto.Id), Times.Once());
             _categoryRepository.Verify(c => c.Update(category), Times.Once());
+            _categoryRepository.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -269,8 +273,12 @@ namespace ExpenseTracker.UnitTests.Services
         [Fact]
         public async Task GetCategoryById_NotFoundCategory_ShouldReturnNotFound()
         {
-            // Arrange Act
-            var result = await _service.GetCategoryById(1);
+            // Arrange
+            var id = 1;
+            var expectedError = CategoryErrorMessages.NotFound(id);
+
+            // Act
+            var result = await _service.GetCategoryById(id);
 
             // Assert
             result.ShouldNotBeNull();
@@ -278,6 +286,11 @@ namespace ExpenseTracker.UnitTests.Services
             result.Data.ShouldBeNull();
             result.StatusCode.ShouldBe(StatusCode.NotFound);
             result.ErrorMessage.ShouldNotBeNull();
+            result.ErrorMessage.Code.ShouldBe(expectedError.Code);
+            result.ErrorMessage.Message.ShouldBe(expectedError.Message);
+            result.ErrorMessage.Parameters.ShouldNotBeNull();
+            result.ErrorMessage.Parameters.Keys.ShouldBe(expectedError.Parameters!.Keys);
+            result.ErrorMessage.Parameters.Values.ShouldBe(expectedError.Parameters.Values);
             _categoryRepository.Verify(c => c.GetById(It.IsAny<int>()), Times.Once());
         }
 
@@ -303,14 +316,24 @@ namespace ExpenseTracker.UnitTests.Services
         [Fact]
         public async Task DeleteCategory_CategoryNotFound_ShouldReturnNotFound()
         {
-            // Arrange Act
-            var result = await _service.DeleteCategory(1);
+            // Arrange
+            var id = 1;
+            var expectedError = CategoryErrorMessages.NotFound(id);
+
+            // Act
+            var result = await _service.DeleteCategory(id);
 
             // Assert
             result.ShouldNotBeNull();
             result.Success.ShouldBeFalse();
             result.StatusCode.ShouldBe(StatusCode.NotFound);
             result.ErrorMessage.ShouldNotBeNull();
+            result.ErrorMessage.Code.ShouldBe(expectedError.Code);
+            result.ErrorMessage.Message.ShouldBe(expectedError.Message);
+            result.ErrorMessage.Parameters.ShouldNotBeNull();
+            result.ErrorMessage.Parameters.Keys.ShouldBe(expectedError.Parameters!.Keys);
+            result.ErrorMessage.Parameters.Values.ShouldBe(expectedError.Parameters.Values);
+            _categoryRepository.Verify(c => c.Delete(It.IsAny<Category>()), Times.Never());
         }
 
         [Fact]
@@ -320,7 +343,8 @@ namespace ExpenseTracker.UnitTests.Services
             var id = 1;
             _categoryRepository.Setup(c => c.GetById(id)).ReturnsAsync(new Category());
             _categoryRepository.Setup(c => c.ContainExpenses(id)).ReturnsAsync(true);
-            
+            var expectedError = CategoryErrorMessages.CannotDeleteCategoryWithExpenses();
+
             // Act
             var result = await _service.DeleteCategory(id);
 
@@ -329,6 +353,10 @@ namespace ExpenseTracker.UnitTests.Services
             result.Success.ShouldBeFalse();
             result.StatusCode.ShouldBe(StatusCode.BadRequest);
             result.ErrorMessage.ShouldNotBeNull();
+            result.ErrorMessage.Code.ShouldBe(expectedError.Code);
+            result.ErrorMessage.Message.ShouldBe(expectedError.Message);
+            result.ErrorMessage.Parameters.ShouldBeNull();
+            _categoryRepository.Verify(c => c.Delete(It.IsAny<Category>()), Times.Never());
         }
 
         [Fact]
@@ -340,7 +368,8 @@ namespace ExpenseTracker.UnitTests.Services
             _categoryRepository.Setup(c => c.GetById(id)).ReturnsAsync(category);
             _categoryRepository.Setup(c => c.ContainExpenses(id)).ReturnsAsync(false);
             _categoryRepository.Setup(c => c.Delete(category)).ReturnsAsync(false);
-            
+            var expectedError = CategoryErrorMessages.NotFound(id);
+
             // Act
             var result = await _service.DeleteCategory(id);
 
@@ -349,6 +378,15 @@ namespace ExpenseTracker.UnitTests.Services
             result.Success.ShouldBeFalse();
             result.StatusCode.ShouldBe(StatusCode.NotFound);
             result.ErrorMessage.ShouldNotBeNull();
+            result.ErrorMessage.Code.ShouldBe(expectedError.Code);
+            result.ErrorMessage.Message.ShouldBe(expectedError.Message);
+            result.ErrorMessage.Parameters.ShouldNotBeNull();
+            result.ErrorMessage.Parameters.Keys.ShouldBe(expectedError.Parameters!.Keys);
+            result.ErrorMessage.Parameters.Values.ShouldBe(expectedError.Parameters.Values);
+            _categoryRepository.Verify(c => c.GetById(id), Times.Once());
+            _categoryRepository.Verify(c => c.ContainExpenses(id), Times.Once());
+            _categoryRepository.Verify(c => c.Delete(category), Times.Once());
+            _categoryRepository.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -369,6 +407,10 @@ namespace ExpenseTracker.UnitTests.Services
             result.Success.ShouldBeTrue();
             result.StatusCode.ShouldBe(StatusCode.NoContent);
             result.ErrorMessage.ShouldBeNull();
+            _categoryRepository.Verify(c => c.GetById(id), Times.Once());
+            _categoryRepository.Verify(c => c.ContainExpenses(id), Times.Once());
+            _categoryRepository.Verify(c => c.Delete(category), Times.Once());
+            _categoryRepository.VerifyNoOtherCalls();
         }
 
         private readonly CategoryService _service;
