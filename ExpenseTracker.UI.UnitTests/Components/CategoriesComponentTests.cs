@@ -32,7 +32,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
         public void DataIsLoading_ShouldShowLoadingIndicator()
         {
             // Arrange
-            var tcs = new TaskCompletionSource<List<CategoryDTO>>();
+            var tcs = new TaskCompletionSource<Result<List<CategoryDTO>>>();
             _categoryService.Setup(x => x.GetAll()).Returns(tcs.Task);
 
             // Act
@@ -61,7 +61,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
 
             // Act
             var categoriesComponent = _testContext.RenderComponent<CategoriesComponent>();
@@ -114,7 +114,8 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
+            _categoryService.Setup(p => p.Add(It.IsAny<CategoryDTO>())).ReturnsAsync(Result.Success());
             var categoriesComponent = _testContext.RenderComponent<CategoriesComponent>();
             var addButton = categoriesComponent.Find("[data-name=\"categories-add-button\"]");
             var categoryFormComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -141,9 +142,9 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var firstCategory = categories.First();
-            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(firstCategory);
+            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(Result<CategoryDTO?>.Success(firstCategory));
             var categoriesComponent = _testContext.RenderComponent<CategoriesComponent>();
             var editButton = categoriesComponent.Find($"[data-name=\"categories-column-edit-with-id-{firstCategory.Id}\"]");
             var categoryFormComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -166,9 +167,9 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var firstCategory = categories.First();
-            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(firstCategory);
+            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(Result<CategoryDTO?>.Success(firstCategory));
             var categoriesComponent = _testContext.RenderComponent<CategoriesComponent>();
             var editButton = categoriesComponent.Find($"[data-name=\"categories-column-edit-with-id-{firstCategory.Id}\"]");
             var categoryFormComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -197,9 +198,10 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var firstCategory = categories.First();
-            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(firstCategory);
+            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(Result<CategoryDTO?>.Success(firstCategory));
+            _categoryService.Setup(p => p.Update(It.IsAny<CategoryDTO>())).ReturnsAsync(Result.Success());
             var categoriesComponent = _testContext.RenderComponent<CategoriesComponent>();
             var editButton = categoriesComponent.Find($"[data-name=\"categories-column-edit-with-id-{firstCategory.Id}\"]");
             var categoryFormComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -227,9 +229,9 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var firstCategory = categories.First();
-            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(firstCategory);
+            _categoryService.Setup(p => p.GetById(firstCategory.Id)).ReturnsAsync(Result<CategoryDTO?>.Success(firstCategory));
             var categoryComponent = _testContext.RenderComponent<CategoriesComponent>();
             var deleteButton = categoryComponent.Find($"[data-name=\"categories-column-delete-with-id-{firstCategory.Id}\"]");
             var deleteCategoryComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -251,8 +253,9 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var firstCategory = categories.First();
+            _categoryService.Setup(p => p.Delete(firstCategory.Id)).ReturnsAsync(Result.Success());
             var categoryComponent = _testContext.RenderComponent<CategoriesComponent>();
             var deleteButton = categoryComponent.Find($"[data-name=\"categories-column-delete-with-id-{firstCategory.Id}\"]");
             var deleteCategoryComponent = _testContext.RenderComponent<MudDialogProvider>();
@@ -291,7 +294,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
             _categoryService = new Mock<ICategoryService>();
             _testContext = new ConfiguredTestContext();
             _testContext.Services.AddScoped((_) => _categoryService.Object);
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync([]);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success([]));
             _testContext.Services.AddSingleton<ITranslateService, TranslateService>();
             var popoverProvider = _testContext.RenderComponent<MudPopoverProvider>();
             popoverProvider.ShouldNotBeNull();

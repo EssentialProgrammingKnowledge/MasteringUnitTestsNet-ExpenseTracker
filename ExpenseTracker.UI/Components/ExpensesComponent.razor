@@ -198,13 +198,30 @@
     {
         try
         {
-            return await CategoryService.GetAll();
+            isLoading = true;
+            var result = await CategoryService.GetAll();
+            if (!result.Valid)
+            {
+                if (result.ErrorMessage is not null)
+                {
+                    Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+                }
+
+                return [];
+            }
+
+            return result.Data ?? [];
         }
         catch
         {
-            Snackbar.Add("Wystąpił błąd podczas pobierania kategorii. Prosimy spróbować ponownie później", Severity.Error);
-            return [];
+            Snackbar.Add("Wystąpił błąd podczas pobierania kateogrii. Prosimy spróbować ponownie później", Severity.Error);
         }
+        finally
+        {
+            isLoading = false;
+        }
+
+        return [];
     }
 
     private async Task<ExpenseDetailsDTO?> LoadExpense(int id)

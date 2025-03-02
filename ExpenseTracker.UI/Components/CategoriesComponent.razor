@@ -1,8 +1,10 @@
-﻿@using ExpenseTracker.UI.Models
+﻿@using ExpenseTracker.UI.Languages
+@using ExpenseTracker.UI.Models
 @using ExpenseTracker.UI.Services
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject HttpClient Http
+@inject ICategoryService CategoryService
+@inject ITranslateService TranslateService
 
 <MudContainer>
     @if (isLoading)
@@ -11,7 +13,7 @@
     }
     else
     {
-        <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="async () => { isAdding = true; isEditing = false; category = new CategoryDTO(); await OpenDialog(); }" data-name="categories-add-button">Dodaj kategorię</MudButton>
+        <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddNewCategory" data-name="categories-add-button">Dodaj kategorię</MudButton>
 
         <MudGrid>
             <MudItem xs="12" sm="6" md="4">
@@ -31,8 +33,8 @@
                 <MudTd data-name="@($"categories-column-with-id-{context.Id}-name")" DataLabel="Name">@context.Name</MudTd>
                 <MudTd data-name="@($"categories-column-with-id-{context.Id}-budget")" DataLabel="Budget">@context.Budget.ToCurrencyString()</MudTd>
                 <MudTd>
-                    <MudTooltip Text="Edytuj kategorię" Placement="Placement.Top" data-name="@($"categories-column-delete-with-id-{context.Id}-tooltip")">
-                        <MudIconButton data-name="@($"categories-column-edit-with-id-{context.Id}")" @onclick="async () => { isAdding = false; isEditing = true; category = new CategoryDTO { Id = context.Id, Name = context.Name, Budget = context.Budget }; await OpenDialog(); }" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
+                    <MudTooltip Text="Edytuj kategorię" Placement="Placement.Top" data-name="@($"categories-column-edit-with-id-{context.Id}-tooltip")">
+                        <MudIconButton data-name="@($"categories-column-edit-with-id-{context.Id}")" @onclick="() => EditCategory(context.Id)" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
                     </MudTooltip>
                     <MudTooltip Text="Usuń kategorię" Placement="Placement.Top" data-name="@($"categories-column-delete-with-id-{context.Id}-tooltip")">
                         <MudIconButton data-name="@($"categories-column-delete-with-id-{context.Id}")" @onclick="() => DeleteCategory(context.Id)" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
@@ -85,19 +87,61 @@
         await LoadCategories();
     }
 
-    private async Task LoadCategories()
+    private async Task AddNewCategory()
     {
-        isLoading = true;
-        categories = await Http.GetFromJsonAsync<List<CategoryDTO>>("/api/categories") ?? [];
-        categoriesToShow = categories;
-        isLoading = false;
+        var dialogReference = await DialogService.ShowAsync<CategoryFormComponent>("Dodaj kategorię", _categoryFormModalOptions);
+        var result = await dialogReference.Result;
+
+        if (result is null || result.Canceled)
+        {
+            return;
+        }
+
+        var dto = result.Data as CategoryDTO;
+        if (dto is null)
+        {
+            return;
+        }
+
+        await SaveCategory(dto);
     }
 
-    private async Task OpenDialog()
+    private async Task DeleteCategory(int id)
     {
-        var dialogReference = await DialogService.ShowAsync<CategoryFormComponent>(isAdding ? "Dodaj kategorię" : "Edytuj kategorię", new DialogParameters
+        var messageBoxValue = await DialogService.ShowMessageBox(_deleteModalContent, _deleteModalOptions);
+        if (!messageBoxValue.HasValue || !messageBoxValue.Value)
         {
-            { "Category", category }
+            return;
+        }
+
+        var result = await CategoryService.Delete(id);
+        if (!result.Valid)
+        {
+            if (result.ErrorMessage is not null)
+            {
+                Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+            }
+
+            return;
+        }
+
+        Snackbar.Add("Pomyślnie usunięto kategorię", Severity.Success);
+        await RefreshCategories();
+    }
+
+    private async Task EditCategory(int id)
+    {
+        var category = await LoadCategory(id);
+        if (category is null)
+        {
+            await LoadCategories();
+            return;
+        }
+
+        var dialogReference = await DialogService.ShowAsync<CategoryFormComponent>("Edytuj kategorię", new DialogParameters
+        {
+            { "Category", category },
+            { "Title", "Edytuj kategorię" }
         }, _categoryFormModalOptions);
         var result = await dialogReference.Result;
 
@@ -106,42 +150,119 @@
             return;
         }
 
-        category = result.Data as CategoryDTO ?? new CategoryDTO();
-        await SaveCategory();
-    }
-
-    private async Task SaveCategory()
-    {
-        if (string.IsNullOrWhiteSpace(category.Name) || category.Budget <= 0)
+        var dto = result.Data as CategoryDTO;
+        if (dto is null)
         {
-            Snackbar.Add("Błąd: Nazwa i budżet są wymagane!", Severity.Error);
             return;
         }
 
-        if (isAdding)
-        {
-            await Http.PostAsJsonAsync("/api/categories", category);
-            Snackbar.Add("Dodano kategorię!", Severity.Success);
-        }
-        else if (isEditing)
-        {
-            await Http.PutAsJsonAsync($"/api/categories/{category.Id}", category);
-            Snackbar.Add("Zaktualizowano kategorię!", Severity.Success);
-        }
-
-        await LoadCategories();
-        OnSearchCategory(searchQuery);
+        await UpdateCategory(dto);
     }
 
-    private async Task DeleteCategory(int id)
+    private async Task LoadCategories()
     {
-        var confirm = await DialogService.ShowMessageBox(_deleteModalContent, _deleteModalOptions);
-        if (confirm == true)
+        try
         {
-            await Http.DeleteAsync($"/api/categories/{id}");
-            Snackbar.Add("Usunięto kategorię!", Severity.Success);
-            await LoadCategories();
-            OnSearchCategory(searchQuery);
+            isLoading = true;
+            var result = await CategoryService.GetAll();
+            if (!result.Valid)
+            {
+                if (result.ErrorMessage is not null)
+                {
+                    Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+                }
+
+                return;
+            }
+
+            categories = result.Data ?? [];
+            categoriesToShow = categories;
         }
+        catch
+        {
+            Snackbar.Add("Wystąpił błąd podczas pobierania kateogrii. Prosimy spróbować ponownie później", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task<CategoryDTO?> LoadCategory(int id)
+    {
+        try
+        {
+            var result = await CategoryService.GetById(id);
+            if (!result.Valid)
+            {
+                if (result.ErrorMessage is not null)
+                {
+                    Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+                }
+
+                return null;
+            }
+
+            return result.Data;
+        }
+        catch
+        {
+            Snackbar.Add("Wystąpił błąd podczas pobierania kategorii. Prosimy spróbować ponownie później", Severity.Error);
+            return null;
+        }
+    }
+
+    private async Task SaveCategory(CategoryDTO newCategory)
+    {
+        try
+        {
+            var result = await CategoryService.Add(newCategory);
+            if (!result.Valid)
+            {
+                if (result.ErrorMessage is not null)
+                {
+                    Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+                }
+
+                return;
+            }
+
+            Snackbar.Add("Pomyślnie dodano kategorię", Severity.Success);
+            await RefreshCategories();
+        }
+        catch
+        {
+            Snackbar.Add("Wystąpił błąd podczas dodawania kategorii. Prosimy spróbować ponownie później", Severity.Error);
+        }
+    }
+
+    private async Task UpdateCategory(CategoryDTO category)
+    {
+        try
+        {
+            var result = await CategoryService.Update(category);
+            if (!result.Valid)
+            {
+                if (result.ErrorMessage is not null)
+                {
+                    Snackbar.Add(TranslateService.Translate(result.ErrorMessage), Severity.Error);
+                }
+
+                return;
+            }
+
+            Snackbar.Add("Pomyślnie zaaktualizowano kategorię", Severity.Success);
+            await RefreshCategories();
+        }
+        catch
+        {
+            Snackbar.Add("Wystąpił błąd podczas aktualizacji kategorii. Prosimy spróbować ponownie później", Severity.Error);
+        }
+    }
+
+    private async Task RefreshCategories()
+    {
+        await LoadCategories();
+        OnSearchCategory(searchQuery);
     }
 }

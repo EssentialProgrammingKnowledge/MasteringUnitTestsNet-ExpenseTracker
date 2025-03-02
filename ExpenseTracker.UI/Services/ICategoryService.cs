@@ -4,10 +4,10 @@ namespace ExpenseTracker.UI.Services
 {
     public interface ICategoryService
     {
-        Task Add(CategoryDTO dto);
-        Task Update(CategoryDTO dto);
-        Task Delete(int id);
-        Task<CategoryDTO?> GetById(int id);
-        Task<List<CategoryDTO>> GetAll();
+        Task<Result> Add(CategoryDTO dto);
+        Task<Result> Update(CategoryDTO dto);
+        Task<Result> Delete(int id);
+        Task<Result<CategoryDTO?>> GetById(int id);
+        Task<Result<List<CategoryDTO>>> GetAll();
     }
 }

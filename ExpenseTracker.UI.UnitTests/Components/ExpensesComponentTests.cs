@@ -114,7 +114,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             _expenseService.Setup(p => p.Add(It.IsAny<ExpenseDTO>()))
                 .ReturnsAsync(Result.Success());
             var expensesComponent = _testContext.RenderComponent<ExpensesComponent>();
@@ -144,7 +144,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var expenses = CreateExpenses();
             _expenseService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<ExpenseDTO>>.Success(expenses));
             var firstExpense = expenses.First();
@@ -174,7 +174,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
         {
             // Arrange
             var categories = CreateCategories();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             var expenses = CreateExpenses();
             _expenseService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<ExpenseDTO>>.Success(expenses));
             var firstExpense = expenses.First();
@@ -210,7 +210,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
             // Arrange
             var categories = CreateCategories();
             var expenses = CreateExpenses();
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(categories);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success(categories));
             _expenseService.Setup(p => p.GetAll()).ReturnsAsync(Result<List<ExpenseDTO>>.Success(expenses));
             var firstExpense = expenses.First();
             var category = categories.First(c => c.Id == firstExpense.CategoryId);
@@ -333,7 +333,7 @@ namespace ExpenseTracker.UI.UnitTests.Components
             _testContext = new ConfiguredTestContext();
             _testContext.Services.AddScoped((_) => _expenseService.Object);
             _testContext.Services.AddScoped((_) => _categoryService.Object);
-            _categoryService.Setup(c => c.GetAll()).ReturnsAsync([]);
+            _categoryService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<CategoryDTO>>.Success([]));
             _expenseService.Setup(c => c.GetAll()).ReturnsAsync(Result<List<ExpenseDTO>>.Success([]));
             _testContext.Services.AddSingleton<ITranslateService, TranslateService>();
             var popoverProvider = _testContext.RenderComponent<MudPopoverProvider>();
