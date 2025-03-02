@@ -250,17 +250,17 @@ namespace ExpenseTracker.UI.UnitTests.Components
             _expenseService.Setup(p => p.GetById(firstExpense.Id)).ReturnsAsync(Result<ExpenseDetailsDTO?>.Success(MapToDetailsDto(firstExpense, category)));
             var expensesComponent = _testContext.RenderComponent<ExpensesComponent>();
             var deleteButton = expensesComponent.Find($"[data-name=\"expenses-column-delete-with-id-{firstExpense.Id}\"]");
-            var deleteexpenseComponent = _testContext.RenderComponent<MudDialogProvider>();
+            var deleteExpenseComponent = _testContext.RenderComponent<MudDialogProvider>();
 
             // Act
             deleteButton.Click();
 
             // Assert
-            deleteexpenseComponent.ShouldNotBeNull();
-            deleteexpenseComponent.Markup.ShouldNotBeNullOrWhiteSpace();
-            var yesButton = deleteexpenseComponent.Find(".mud-message-box__yes-button");
+            deleteExpenseComponent.ShouldNotBeNull();
+            deleteExpenseComponent.Markup.ShouldNotBeNullOrWhiteSpace();
+            var yesButton = deleteExpenseComponent.Find(".mud-message-box__yes-button");
             yesButton.ShouldNotBeNull();
-            var noButton = deleteexpenseComponent.Find(".mud-message-box__no-button");
+            var noButton = deleteExpenseComponent.Find(".mud-message-box__no-button");
             noButton.ShouldNotBeNull();
         }
 
@@ -274,15 +274,15 @@ namespace ExpenseTracker.UI.UnitTests.Components
             _expenseService.Setup(p => p.Delete(firstExpense.Id)).ReturnsAsync(Result.Success());
             var expensesComponent = _testContext.RenderComponent<ExpensesComponent>();
             var deleteButton = expensesComponent.Find($"[data-name=\"expenses-column-delete-with-id-{firstExpense.Id}\"]");
-            var deleteexpenseComponent = _testContext.RenderComponent<MudDialogProvider>();
+            var deleteExpenseComponent = _testContext.RenderComponent<MudDialogProvider>();
             deleteButton.Click();
-            var confirmDeleteButton = deleteexpenseComponent.Find(".mud-message-box__yes-button");
+            var confirmDeleteButton = deleteExpenseComponent.Find(".mud-message-box__yes-button");
 
             // Act
             confirmDeleteButton.Click();
 
             // Assert
-            deleteexpenseComponent.Markup.ShouldBeEmpty();
+            deleteExpenseComponent.Markup.ShouldBeEmpty();
             _expenseService.Verify(p => p.Delete(firstExpense.Id), Times.Once());
             _expenseService.Verify(p => p.GetAll(), Times.Exactly(2));
         }
